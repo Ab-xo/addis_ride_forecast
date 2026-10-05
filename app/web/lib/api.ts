@@ -1,13 +1,20 @@
-// Typed client for the FastAPI server in app/app.py. In production the server also serves this app, so
-// requests are same-origin. Under `npm run dev` (port 3000) they go to the Python API on port 8000.
-const BASE =
+// Typed client for the forecast API. Where the API lives:
+// • NEXT_PUBLIC_API_BASE, if set (e.g. a separately hosted FastAPI server);
+// • otherwise the same origin: FastAPI serving the static build (python app/app.py), or the Next.js route
+//   handlers in a Vercel / `next start` build;
+// • under `npm run dev` of the static build (port 3000), the FastAPI server on port 8000.
+export const BASE =
   process.env.NEXT_PUBLIC_API_BASE ??
-  (typeof window !== "undefined" && window.location.port === "3000" ? "http://localhost:8000" : "");
+  (!process.env.NEXT_PUBLIC_SERVER_MODE && typeof window !== "undefined" && window.location.port === "3000"
+    ? "http://localhost:8000"
+    : "");
 
 export type Zone = { zone: string; type: string; type_label: string; lat: number; lon: number; fare: number };
+export type Basemap = { tiles: string; styles: string[]; default: string; attribution: string };
 export type Meta = {
+  basemap: Basemap;
   team: string;
-  model: { name: string; n_features: number; trained_on: string; rmse: number; mae: number; rolling_rmse: number; baseline_rmse: number };
+  model: { name: string; n_features: number; trained_on: string; rmse: number; mae: number; rolling_rmse: number; rolling_rmse_sd: number; n_train: number; baseline_rmse: number };
   trips_per_driver_hour: number;
   first_day: string;
   last_day: string;
