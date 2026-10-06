@@ -1,0 +1,8 @@
+event_id,event_name,event_type,venue,zones,start,end,attendance,status
+EVT-0155,Live concert,concert,Millennium Hall,Bole,2025-11-05 19:00:00,2025-11-05 23:00:00,7316.0,confirmed
+EVT-0157,Premier league match,football_match,Addis Ababa Stadium,Kazanchis,2025-11-09 15:00:00,2025-11-09 17:00:00,17799.0,confirmed
+EVT-0159,Premier league match,football_match,Addis Ababa Stadium,Kazanchis,2025-11-10 19:00:00,2025-11-10 21:00:00,23339.5,confirmed
+EVT-0154,Premier league match,football_match,Addis Ababa Stadium,Kazanchis,2025-11-03 19:00:00,2025-11-03 21:00:00,32000.0,confirmed
+EVT-0153,Premier league match,football_match,Addis Ababa Stadium,Kazanchis,2025-11-02 15:00:00,2025-11-02 17:00:00,15207.0,confirmed
+EVT-0156,Community fun run,sports_run,Meskel Square,Kazanchis,2025-11-09 06:00:00,2025-11-09 11:00:00,17716.0,confirmed
+EVT-0158,Road closure (construction),road_closure,(none),Megenagna,2025-11-10 02:00:00,2025-11-10 22:00:00,0.0,confirmed
