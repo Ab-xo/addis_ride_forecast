@@ -29,7 +29,7 @@ rain_3h,True,True,float64,weather,"Rain over the current and previous 2 hours, m
 rain_class,True,True,int64,weather,"0 none, 1 light (<=2.5), 2 moderate (<=7.5), 3 heavy",bins of rain_mm,yes (forecast)
 humidity_pct,True,True,float64,weather,"Relative humidity, %",joined; blanks interpolated,yes (forecast)
 wind_kmh,True,True,float64,weather,"Wind speed, km/h",joined,yes (forecast)
-ev_football_window,True,True,float64,events,1 if a confirmed football match window (2 h before start to 2 h after end) covers the zone-hour,interval join,yes
+ev_football_window,True,True,float64,events,1 if a confirmed football match window (2 h before start to 3 h after end) covers the zone-hour,interval join,yes
 ev_concert_window,True,True,float64,events,1 inside a confirmed concert window,interval join,yes
 ev_conference_window,True,True,float64,events,1 inside a confirmed conference window,interval join,yes
 ev_exhibition_window,True,True,float64,events,1 inside a confirmed exhibition window,interval join,yes
@@ -37,7 +37,7 @@ ev_road_closure,True,True,float64,events,1 during a confirmed road closure,inter
 ev_sports_run_window,True,True,float64,events,1 inside a confirmed sports run window,interval join,yes
 ev_pre,True,True,float64,events,1 in the 2 h before a venue event starts,phase of window,yes
 ev_during,True,True,float64,events,1 while a venue event runs,phase of window,yes
-ev_post,True,True,float64,events,1 in the 2 h after a venue event ends,phase of window,yes
+ev_post,True,True,float64,events,1 in the 3 h after a venue event ends,phase of window,yes
 ev_log_attendance,True,True,float64,events,log(1 + expected attendance) of the largest active venue event,free text -> number; blanks -> type median,yes
 ev_hours_to_major_start,True,True,float64,events,"Hours until the next football/concert start in the zone, capped at 12",searchsorted on event starts,yes
 ev_hours_since_major_end,True,True,float64,events,"Hours since the last football/concert ended in the zone, capped at 12",searchsorted on event ends,yes

@@ -309,7 +309,7 @@ Every format is matched by a regular expression and parsed with an explicit `for
 
 * **Left table = the zone-hour grid** (train: every zone x every hour 1 Jan–31 Oct; test: the 4,032 test rows). It is the unit we forecast, so every zone-hour must survive the joins — including outage/missing hours, which keep a status flag rather than disappearing.
 * **Weather: left join, many-to-one on `pickup_hour`** after shifting weather from UTC to EAT. The weather key is made unique first (duplicate hours averaged), so the row count cannot change.
-* **Events: interval join.** Each event is expanded to (event, zone, hour) rows covering its window, then aggregated back to one row per (zone, hour). Window rule: venue events reach 2 h before the start (arrivals) and 2 h after the end (the departing crowd — the biggest surge in B3.2). Holidays and school breaks are day-level calendar items; road closures only cover their own hours.
+* **Events: interval join.** Each event is expanded to (event, zone, hour) rows covering its window, then aggregated back to one row per (zone, hour). Window rule: venue events reach 2 h before the start (arrivals) and 3 h after the end (the departing crowd; the length is checked in A6b). Holidays and school breaks are day-level calendar items; road closures only cover their own hours.
 
 
 ## A4 Join audit
@@ -327,8 +327,8 @@ Row counts are unchanged (87,552 -> 87,552 train, 4,032 -> 4,032 test) because w
 
 | join         |   rows_before |   rows_after |   zone_hours_in_any_confirmed_window |   events_total |   events_matched_any_zone_hour |   events_matched_confirmed |   events_unmatched |
 |:-------------|--------------:|-------------:|-------------------------------------:|---------------:|-------------------------------:|---------------------------:|-------------------:|
-| events_train |         87552 |        87552 |                                24733 |            159 |                            152 |                        146 |                  7 |
-| events_test  |          4032 |         4032 |                                   61 |            159 |                              7 |                          7 |                152 |
+| events_train |         87552 |        87552 |                                24809 |            159 |                            152 |                        146 |                  7 |
+| events_test  |          4032 |         4032 |                                   66 |            159 |                              7 |                          7 |                152 |
 
 Of 159 cleaned events, 152 touch at least one training zone-hour (146 of them confirmed) and 7 touch the test fortnight. Excluded or unmatched:
 
@@ -426,7 +426,7 @@ Resulting master-table values:
 | rain_class               | weather     | weather           | bins of rain_mm                                  | 0 none, 1 light (<=2.5), 2 moderate (<=7.5), 3 heavy                                            | response to rain may saturate (B2.3)                      | yes (forecast)           |
 | humidity_pct             | weather     | weather           | joined; blanks interpolated                      | Relative humidity, %                                                                            | proxy for rain risk                                       | yes (forecast)           |
 | wind_kmh                 | weather     | weather           | joined                                           | Wind speed, km/h                                                                                | minor comfort effect                                      | yes (forecast)           |
-| ev_football_window       | events      | events            | interval join                                    | 1 if a confirmed football match window (2 h before start to 2 h after end) covers the zone-hour | match crowds arrive and leave by ride                     | yes                      |
+| ev_football_window       | events      | events            | interval join                                    | 1 if a confirmed football match window (2 h before start to 3 h after end) covers the zone-hour | match crowds arrive and leave by ride                     | yes                      |
 | ev_concert_window        | events      | events            | interval join                                    | 1 inside a confirmed concert window                                                             | late-night concert crowds                                 | yes                      |
 | ev_conference_window     | events      | events            | interval join                                    | 1 inside a confirmed conference window                                                          | business travel to venues                                 | yes                      |
 | ev_exhibition_window     | events      | events            | interval join                                    | 1 inside a confirmed exhibition window                                                          | multi-day visitor flow                                    | yes                      |
@@ -434,7 +434,7 @@ Resulting master-table values:
 | ev_sports_run_window     | events      | events            | interval join                                    | 1 inside a confirmed sports run window                                                          | mass participation events                                 | yes                      |
 | ev_pre                   | events      | events            | phase of window                                  | 1 in the 2 h before a venue event starts                                                        | arrival rush                                              | yes                      |
 | ev_during                | events      | events            | phase of window                                  | 1 while a venue event runs                                                                      | demand often dips while attendees are inside              | yes                      |
-| ev_post                  | events      | events            | phase of window                                  | 1 in the 2 h after a venue event ends                                                           | the leaving crowd is the biggest surge                    | yes                      |
+| ev_post                  | events      | events            | phase of window                                  | 1 in the 3 h after a venue event ends                                                           | the leaving crowd is the biggest surge                    | yes                      |
 | ev_log_attendance        | events      | events            | free text -> number; blanks -> type median       | log(1 + expected attendance) of the largest active venue event                                  | bigger crowds, bigger surge                               | yes                      |
 | ev_hours_to_major_start  | events      | events            | searchsorted on event starts                     | Hours until the next football/concert start in the zone, capped at 12                           | ramp-up before big events                                 | yes                      |
 | ev_hours_since_major_end | events      | events            | searchsorted on event ends                       | Hours since the last football/concert ended in the zone, capped at 12                           | post-event surge decays over a few hours                  | yes                      |
@@ -444,6 +444,22 @@ Resulting master-table values:
 | lag_mean_2to4w           | lag / trend | trips (history)   | row mean ignoring NaN                            | Mean of lag_14d, lag_21d, lag_28d                                                               | smoother same-hour level                                  | yes                      |
 | profile_zone_dow_hour    | lag / trend | trips (train fit) | groupby mean on training rows only               | Mean trips for zone x weekday x hour over the training period                                   | typical shape (seasonal-naive)                            | yes                      |
 | zone_level_2to4w         | lag / trend | trips (history)   | daily means, shift 14 d, rolling 14 d            | Zone mean trips per hour over the 14 days that end 14 days before the row's day                 | captures the growth trend that trees cannot extrapolate   | yes                      |
+
+
+### A6b Event window check
+
+Demand ratio (trips / normal hour of the same zone, weekday, hour and week) by hour relative to the event end. Concert demand is still about double normal in the 3rd hour after the end and is back to normal by the 4th; football is back to normal by the 3rd. We therefore use 2 h before the start and 3 h after the end as the window.
+
+|   hour vs. event end (0 = last hour of the event, 1 = first hour after) |   football_match |   concert |
+|------------------------------------------------------------------------:|-----------------:|----------:|
+|                                                                      -2 |             1.77 |      1.06 |
+|                                                                      -1 |             1.42 |      1.00 |
+|                                                                       0 |             1.41 |      1.03 |
+|                                                                       1 |             2.55 |      1.82 |
+|                                                                       2 |             2.19 |      1.86 |
+|                                                                       3 |             1.12 |      1.76 |
+|                                                                       4 |             1.09 |      0.96 |
+|                                                                       5 |             1.11 |      1.07 |
 
 
 ## A7 Integrity checks
@@ -513,7 +529,7 @@ The test rows go through exactly the same functions; the only fitted objects (zo
 | rain_class               | True              | True             | int64          | weather           | 0 none, 1 light (<=2.5), 2 moderate (<=7.5), 3 heavy                                            | bins of rain_mm                                        | yes (forecast)           |
 | humidity_pct             | True              | True             | float64        | weather           | Relative humidity, %                                                                            | joined; blanks interpolated                            | yes (forecast)           |
 | wind_kmh                 | True              | True             | float64        | weather           | Wind speed, km/h                                                                                | joined                                                 | yes (forecast)           |
-| ev_football_window       | True              | True             | float64        | events            | 1 if a confirmed football match window (2 h before start to 2 h after end) covers the zone-hour | interval join                                          | yes                      |
+| ev_football_window       | True              | True             | float64        | events            | 1 if a confirmed football match window (2 h before start to 3 h after end) covers the zone-hour | interval join                                          | yes                      |
 | ev_concert_window        | True              | True             | float64        | events            | 1 inside a confirmed concert window                                                             | interval join                                          | yes                      |
 | ev_conference_window     | True              | True             | float64        | events            | 1 inside a confirmed conference window                                                          | interval join                                          | yes                      |
 | ev_exhibition_window     | True              | True             | float64        | events            | 1 inside a confirmed exhibition window                                                          | interval join                                          | yes                      |
@@ -521,7 +537,7 @@ The test rows go through exactly the same functions; the only fitted objects (zo
 | ev_sports_run_window     | True              | True             | float64        | events            | 1 inside a confirmed sports run window                                                          | interval join                                          | yes                      |
 | ev_pre                   | True              | True             | float64        | events            | 1 in the 2 h before a venue event starts                                                        | phase of window                                        | yes                      |
 | ev_during                | True              | True             | float64        | events            | 1 while a venue event runs                                                                      | phase of window                                        | yes                      |
-| ev_post                  | True              | True             | float64        | events            | 1 in the 2 h after a venue event ends                                                           | phase of window                                        | yes                      |
+| ev_post                  | True              | True             | float64        | events            | 1 in the 3 h after a venue event ends                                                           | phase of window                                        | yes                      |
 | ev_log_attendance        | True              | True             | float64        | events            | log(1 + expected attendance) of the largest active venue event                                  | free text -> number; blanks -> type median             | yes                      |
 | ev_hours_to_major_start  | True              | True             | float64        | events            | Hours until the next football/concert start in the zone, capped at 12                           | searchsorted on event starts                           | yes                      |
 | ev_hours_since_major_end | True              | True             | float64        | events            | Hours since the last football/concert ended in the zone, capped at 12                           | searchsorted on event ends                             | yes                      |

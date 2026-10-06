@@ -36,4 +36,4 @@ EVENT_TYPES = ["public_holiday", "school_break", "football_match", "concert",
 
 # Hours an event window reaches before the start and after the end (A3 rule).
 EVENT_PRE_HOURS = 2
-EVENT_POST_HOURS = 2
+EVENT_POST_HOURS = 3  # concerts still surge in the 3rd hour after the end (notebook 01, A6b)

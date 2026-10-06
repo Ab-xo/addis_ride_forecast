@@ -67,7 +67,7 @@ COLUMNS = {
     "wind_kmh": ("weather", "Wind speed, km/h", "joined", "minor comfort effect", "yes (forecast)"),
     # ---- events
     "ev_football_window": ("events", "1 if a confirmed football match window (2 h before start "
-                           "to 2 h after end) covers the zone-hour", "interval join",
+                           "to 3 h after end) covers the zone-hour", "interval join",
                            "match crowds arrive and leave by ride", "yes"),
     "ev_concert_window": ("events", "1 inside a confirmed concert window", "interval join",
                           "late-night concert crowds", "yes"),
@@ -83,7 +83,7 @@ COLUMNS = {
                "arrival rush", "yes"),
     "ev_during": ("events", "1 while a venue event runs", "phase of window",
                   "demand often dips while attendees are inside", "yes"),
-    "ev_post": ("events", "1 in the 2 h after a venue event ends", "phase of window",
+    "ev_post": ("events", "1 in the 3 h after a venue event ends", "phase of window",
                 "the leaving crowd is the biggest surge", "yes"),
     "ev_log_attendance": ("events", "log(1 + expected attendance) of the largest active venue "
                           "event", "free text -> number; blanks -> type median",
