@@ -1,0 +1,7 @@
+venv/
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+.DS_Store
+.vscode/
+hackathon-problem-set-2-student-copy/
