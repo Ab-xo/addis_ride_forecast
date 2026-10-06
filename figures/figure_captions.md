@@ -40,7 +40,7 @@ City-wide trips on each holiday relative to the same weekday in nearby weeks. Mo
 
 ## fig10_model_comparison.png
 
-Validation RMSE on 18-31 Oct for both baselines, four model families and the tuned/final LightGBM (bars, from zero), with the rolling-origin mean ± sd over 5 folds (diamonds). The final model (8.09) beats the best baseline (9.94) by 19% and does so in every fold. So what: boosted trees on well-joined features are the right tool here; tuning adds little.
+Validation RMSE on 18-31 Oct for the baselines (mean, seasonal naive, moving average), six model families (ARIMA, ridge, random forest and three gradient-boosting variants) and the tuned/final LightGBM (bars, from zero), with the rolling-origin mean ± sd over 5 folds (diamonds). The final model (8.09) beats the best baseline (9.94) by 19% and does so in every fold. So what: boosted trees on well-joined features are the right tool here; tuning adds little.
 
 ## fig11_forecast_vs_actual.png
 

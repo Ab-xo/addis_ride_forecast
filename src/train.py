@@ -4,10 +4,12 @@ from __future__ import annotations
 import time
 
 import lightgbm as lgb
+import warnings
+
 import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import HistGradientBoostingRegressor, RandomForestRegressor
+from sklearn.ensemble import GradientBoostingRegressor, HistGradientBoostingRegressor, RandomForestRegressor
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
@@ -92,6 +94,59 @@ def seasonal_naive(tr, va, recent_weeks: int | None = None):
     return p.fillna(tr[TARGET].mean()).values
 
 
+def moving_average(tr, va, days: int = 7):
+    """Average trips for the same zone and hour of day over the last `days` days of training, held flat over
+    the forecast horizon (ignores the weekday)."""
+    t = tr[tr["pickup_hour"] > tr["pickup_hour"].max() - pd.Timedelta(days=days)]
+    prof = t.groupby(["zone", "hour"])[TARGET].mean().rename("p")
+    return va.join(prof, on=["zone", "hour"])["p"].fillna(tr[TARGET].mean()).values
+
+
+# --------------------------------------------------------------------------------------
+# ARIMA (classical time-series model, one per zone)
+# --------------------------------------------------------------------------------------
+ARIMA_ORDER = (2, 0, 1)
+ARIMA_WEEKS = 8           # training window per zone
+ARIMA_K_DAILY = 6         # Fourier pairs for the 24-h cycle
+ARIMA_K_WEEKLY = 16       # Fourier pairs for the 168-h cycle (chosen on the 4 Oct fold, not the main split)
+
+
+def fourier_terms(idx: pd.DatetimeIndex, k_daily: int = ARIMA_K_DAILY, k_weekly: int = ARIMA_K_WEEKLY) -> pd.DataFrame:
+    h = (idx - pd.Timestamp("2025-01-06")) / pd.Timedelta(hours=1)   # a Monday 00:00, so phases are fixed
+    cols = {}
+    for period, k_max in ((24, k_daily), (168, k_weekly)):
+        for k in range(1, k_max + 1):
+            cols[f"sin{period}_{k}"] = np.sin(2 * np.pi * k * h / period)
+            cols[f"cos{period}_{k}"] = np.cos(2 * np.pi * k * h / period)
+    return pd.DataFrame(cols, index=idx)
+
+
+def arima_forecast(tr, va):
+    """Per zone, on log1p(trips) over the last 8 weeks of training: (1) daily + weekly Fourier seasonality by least
+    squares, then (2) ARIMA(2,0,1) on what is left, forecast up to 14 days ahead. Fitting the two parts in two steps
+    is stable; the joint SARIMAX fit failed to converge in the early folds and over-shot. Uses no weather or events."""
+    from statsmodels.tsa.arima.model import ARIMA
+    out = pd.Series(np.nan, index=va.index)
+    for z, g in tr.groupby("zone"):
+        vz = va[va["zone"] == z]
+        if vz.empty:
+            continue
+        s = g.set_index("pickup_hour")[TARGET].sort_index()
+        end = s.index.max()
+        s = s[s.index > end - pd.Timedelta(weeks=ARIMA_WEEKS)]
+        s = np.log1p(s.asfreq("h")).interpolate(limit_direction="both")   # fill the few missing hours
+        X = fourier_terms(s.index).assign(const=1.0)
+        beta, *_ = np.linalg.lstsq(X.values, s.values, rcond=None)
+        fidx = pd.date_range(end + pd.Timedelta(hours=1), vz["pickup_hour"].max(), freq="h")
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            res = ARIMA(s - X.values @ beta, order=ARIMA_ORDER, trend="c").fit()
+            resid_f = np.asarray(res.forecast(len(fidx)))
+        f = pd.Series(fourier_terms(fidx).assign(const=1.0).values @ beta + resid_f, index=fidx)
+        out.loc[vz.index] = np.expm1(f.reindex(vz["pickup_hour"]).values)
+    return out.fillna(tr[TARGET].mean()).clip(lower=0).values
+
+
 # --------------------------------------------------------------------------------------
 # Models
 # --------------------------------------------------------------------------------------
@@ -128,6 +183,12 @@ def make_model(name: str, feats: list[str], params: dict | None = None):
                                        RandomForestRegressor(n_estimators=300, min_samples_leaf=3,
                                                              max_features=0.5, n_jobs=-1,
                                                              random_state=config.RANDOM_STATE)))
+    if name == "gradient_boosting":
+        # Classic (exact-split) gradient boosting from scikit-learn; it needs missing lags imputed.
+        return LogTarget(make_pipeline(SimpleImputer(strategy="median"),
+                                       GradientBoostingRegressor(n_estimators=300, max_depth=6, learning_rate=0.1,
+                                                                 subsample=0.8,
+                                                                 random_state=config.RANDOM_STATE)))
     if name == "hist_gb":
         return LogTarget(HistGradientBoostingRegressor(max_iter=600, learning_rate=0.05,
                                                        max_leaf_nodes=63,

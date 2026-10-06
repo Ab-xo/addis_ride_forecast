@@ -6,6 +6,8 @@ matplotlib==3.11.2
 seaborn==0.13.2
 tabulate==0.10.0
 scikit-learn==1.9.1
+statsmodels==0.15.0
+patsy==1.0.3
 lightgbm==4.7.0
 joblib==1.6.0
 python-pptx==1.0.2
