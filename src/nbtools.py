@@ -4,6 +4,9 @@ from __future__ import annotations
 import pandas as pd
 
 
+INT_LIKE = {"trial", "num_leaves", "n_estimators", "min_child_samples", "hour", "zone_hours", "n_features", "n_train", "n_valid"}
+
+
 class Report:
     """Collects markdown sections in notebook order and writes them to one file."""
 
@@ -17,6 +20,13 @@ class Report:
         self.parts.append(text.strip() + "\n")
 
     def table(self, df: pd.DataFrame, index: bool = False, floatfmt: str = ".2f"):
+        # Integer columns stay integers (a mixed frame would otherwise print them with decimals).
+        df = df.copy()
+        for c in df.columns:
+            v = df[c]
+            if pd.api.types.is_integer_dtype(v) or (pd.api.types.is_float_dtype(v) and v.notna().all() and (v % 1 == 0).all()
+                                                     and str(c) in INT_LIKE):
+                df[c] = v.astype("int64").astype(object)
         self.parts.append(df.to_markdown(index=index, floatfmt=floatfmt) + "\n")
 
     def code(self, text: str):

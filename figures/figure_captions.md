@@ -37,3 +37,15 @@ Average demand ratio in the event zone from 6 h before to 8 h after the start (1
 ## fig09_holiday_effects.png
 
 City-wide trips on each holiday relative to the same weekday in nearby weeks. Most weekday holidays cut demand by 10-26% (Good Friday is the deepest at 0.74), while the three Sunday holidays barely move it (Adwa Victory Day even rises to 1.10). So what: a holiday flag helps, but its effect depends on the weekday and (B3.1) the zone.
+
+## fig10_model_comparison.png
+
+Validation RMSE on 18-31 Oct for both baselines, four model families and the tuned/final LightGBM (bars, from zero), with the rolling-origin mean ± sd over 5 folds (diamonds). The final model (8.09) beats the best baseline (9.94) by 19% and does so in every fold. So what: boosted trees on well-joined features are the right tool here; tuning adds little.
+
+## fig11_forecast_vs_actual.png
+
+Hourly forecasts (model trained up to 17 Oct) against actual trips for three contrasting zones over the full validation fortnight. The model follows the daily and weekly shape in each zone, including Kazanchis' empty weekends and Bole's weekend nights; the misses are the tallest surge peaks, which it under-shoots. So what: plan for the forecast, keep a buffer at known peaks (see the stretch intervals).
+
+## fig12_feature_importance.png
+
+Permutation importance: how much the validation RMSE rises when each feature is shuffled; weather features in blue, event features in orange. The zone x weekday x hour profile dominates (its bar is cut off; it already encodes zone and hour, so those rank lower on their own), but the top weather feature ranks #3 and the top event feature #9. So what: the joins add real, if smaller, signal on top of the calendar.

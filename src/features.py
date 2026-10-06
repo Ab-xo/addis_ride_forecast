@@ -16,6 +16,8 @@ from src import cleaning, config
 # --------------------------------------------------------------------------------------
 CALENDAR_FEATURES = ["hour", "dow", "is_weekend", "month", "day_of_month", "is_payday_window",
                      "is_public_holiday", "is_school_break", "trend_days"]
+# Added in D8 after the error analysis found big misses on the eve of holidays.
+D8_FEATURES = ["is_holiday_eve"]
 ZONE_FEATURES = ["zone_code", "zone_type_code"]
 WEATHER_FEATURES = ["temp_c", "rain_mm", "rain_3h", "rain_class", "humidity_pct", "wind_kmh"]
 EVENT_FEATURES = ["ev_football_window", "ev_concert_window", "ev_conference_window",
@@ -24,7 +26,8 @@ EVENT_FEATURES = ["ev_football_window", "ev_concert_window", "ev_conference_wind
                   "ev_hours_to_major_start", "ev_hours_since_major_end"]
 LAG_FEATURES = ["lag_14d", "lag_21d", "lag_28d", "lag_mean_2to4w", "profile_zone_dow_hour",
                 "zone_level_2to4w"]
-ALL_FEATURES = CALENDAR_FEATURES + ZONE_FEATURES + WEATHER_FEATURES + EVENT_FEATURES + LAG_FEATURES
+BASE_FEATURES = CALENDAR_FEATURES + ZONE_FEATURES + WEATHER_FEATURES + EVENT_FEATURES + LAG_FEATURES
+ALL_FEATURES = BASE_FEATURES + D8_FEATURES
 
 # Columns in master_train that exist only in the history (never model inputs, Rule 6).
 OPERATIONAL_COLUMNS = ["avg_fare_birr", "avg_wait_min", "active_drivers"]
@@ -109,6 +112,20 @@ def event_hour_table(events: pd.DataFrame) -> pd.DataFrame:
     return cleaning.explode_event_hours(events)
 
 
+def _holiday_eves(conf_hours: pd.DataFrame) -> pd.DataFrame:
+    """Zone-hours on the calendar day before a confirmed public holiday (shopping, travel, Demera)."""
+    hol = conf_hours[conf_hours["event_type"] == "public_holiday"]
+    days = hol["pickup_hour"].dt.floor("D").drop_duplicates()
+    eve_hours = pd.DataFrame({"pickup_hour": [d - pd.Timedelta(days=1) + pd.Timedelta(hours=h)
+                                              for d in days for h in range(24)]})
+    zones = pd.DataFrame({"zone": config.ZONES})
+    eve = zones.merge(eve_hours, how="cross")
+    # The eve is not itself a holiday (e.g. two holidays in a row).
+    hol_keys = set(zip(hol["zone"], hol["pickup_hour"]))
+    keep = [k not in hol_keys for k in zip(eve["zone"], eve["pickup_hour"])]
+    return eve[keep]
+
+
 def aggregate_event_features(keys: pd.DataFrame, eh: pd.DataFrame,
                              events: pd.DataFrame) -> pd.DataFrame:
     """Aggregate confirmed event-hours onto (zone, pickup_hour) keys. Cancelled events are
@@ -136,6 +153,7 @@ def aggregate_event_features(keys: pd.DataFrame, eh: pd.DataFrame,
         np.log1p(venue.groupby(["zone", "pickup_hour"])["attendance"].max())
         .rename("ev_log_attendance"),
         flag(eh[eh["status"] == "cancelled"], "ev_cancelled_window"),
+        flag(_holiday_eves(conf), "is_holiday_eve"),
         conf.groupby(["zone", "pickup_hour"])["event_id"]
         .agg(lambda s: ";".join(sorted(set(s)))).rename("ev_ids"),
     ]

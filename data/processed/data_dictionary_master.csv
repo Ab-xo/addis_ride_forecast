@@ -47,4 +47,5 @@ lag_28d,True,True,float64,trips (history),"Same, 28 days earlier",shift by 672 h
 lag_mean_2to4w,True,True,float64,trips (history),"Mean of lag_14d, lag_21d, lag_28d",row mean ignoring NaN,yes
 profile_zone_dow_hour,True,True,float64,trips (train fit),Mean trips for zone x weekday x hour over the training period,groupby mean on training rows only,yes
 zone_level_2to4w,True,True,float64,trips (history),Zone mean trips per hour over the 14 days that end 14 days before the row's day,"daily means, shift 14 d, rolling 14 d",yes
+is_holiday_eve,True,True,float64,events,1 on the day before a confirmed public holiday,holiday dates - 1 day (D8),yes
 row_id,False,True,str,test,Test row identifier (join key for scoring),copied from raw,yes

@@ -405,7 +405,7 @@ Resulting master-table values:
 
 ## A6 Feature engineering table
 
-35 engineered features: 9 calendar, 12 events, 6 lag / trend, 6 weather, 2 zone. Lags are at least 14 days old — the forecast horizon — so every one is known when the forecast for 1–14 November is made on 31 October. Fitted pieces (zone types, the zone x weekday x hour profile, attendance medians) are learned on training rows only.
+36 engineered features: 10 calendar, 12 events, 6 lag / trend, 6 weather, 2 zone. Lags are at least 14 days old — the forecast horizon — so every one is known when the forecast for 1–14 November is made on 31 October. Fitted pieces (zone types, the zone x weekday x hour profile, attendance medians) are learned on training rows only.
 
 | feature                  | family      | group             | formula                                          | description                                                                                     | why_it_should_help                                        | known_at_forecast_time   |
 |:-------------------------|:------------|:------------------|:-------------------------------------------------|:------------------------------------------------------------------------------------------------|:----------------------------------------------------------|:-------------------------|
@@ -444,6 +444,7 @@ Resulting master-table values:
 | lag_mean_2to4w           | lag / trend | trips (history)   | row mean ignoring NaN                            | Mean of lag_14d, lag_21d, lag_28d                                                               | smoother same-hour level                                  | yes                      |
 | profile_zone_dow_hour    | lag / trend | trips (train fit) | groupby mean on training rows only               | Mean trips for zone x weekday x hour over the training period                                   | typical shape (seasonal-naive)                            | yes                      |
 | zone_level_2to4w         | lag / trend | trips (history)   | daily means, shift 14 d, rolling 14 d            | Zone mean trips per hour over the 14 days that end 14 days before the row's day                 | captures the growth trend that trees cannot extrapolate   | yes                      |
+| is_holiday_eve           | calendar    | events            | holiday dates - 1 day (D8)                       | 1 on the day before a confirmed public holiday                                                  | eve shopping, travel and Demera crowds (D7)               | yes                      |
 
 
 ### A6b Event window check
@@ -452,14 +453,14 @@ Demand ratio (trips / normal hour of the same zone, weekday, hour and week) by h
 
 |   hour vs. event end (0 = last hour of the event, 1 = first hour after) |   football_match |   concert |
 |------------------------------------------------------------------------:|-----------------:|----------:|
-|                                                                      -2 |             1.77 |      1.06 |
-|                                                                      -1 |             1.42 |      1.00 |
-|                                                                       0 |             1.41 |      1.03 |
-|                                                                       1 |             2.55 |      1.82 |
-|                                                                       2 |             2.19 |      1.86 |
-|                                                                       3 |             1.12 |      1.76 |
-|                                                                       4 |             1.09 |      0.96 |
-|                                                                       5 |             1.11 |      1.07 |
+|                                                                      -2 |             1.73 |      1.06 |
+|                                                                      -1 |             1.38 |      1.02 |
+|                                                                       0 |             1.35 |      1.05 |
+|                                                                       1 |             2.49 |      1.83 |
+|                                                                       2 |             2.15 |      1.87 |
+|                                                                       3 |             1.12 |      1.77 |
+|                                                                       4 |             1.06 |      0.95 |
+|                                                                       5 |             1.03 |      1.01 |
 
 
 ## A7 Integrity checks
@@ -490,9 +491,9 @@ Demand ratio (trips / normal hour of the same zone, weekday, hour and week) by h
 
 ## A8 Master tables and data dictionary
 
-* `data/processed/master_train.csv` — 87,552 rows x 48 columns (full grid; train on `row_status == 'observed'`, 83,104 rows).
-* `data/processed/master_test.csv` — 4,032 rows x 43 columns, same 35 feature columns, no target, original row order.
-* `data/processed/data_dictionary_master.csv` — 49 columns documented (type, source, description, derivation, known at forecast time).
+* `data/processed/master_train.csv` — 87,552 rows x 49 columns (full grid; train on `row_status == 'observed'`, 83,104 rows).
+* `data/processed/master_test.csv` — 4,032 rows x 44 columns, same 36 feature columns, no target, original row order.
+* `data/processed/data_dictionary_master.csv` — 50 columns documented (type, source, description, derivation, known at forecast time).
 * Also exported for later notebooks and the demo: `weather_clean.csv`, `events_clean.csv`, `zone_types.csv`.
 
 The test rows go through exactly the same functions; the only fitted objects (zone types, the zone x weekday x hour profile, attendance medians) are learned from training data only.
@@ -547,4 +548,5 @@ The test rows go through exactly the same functions; the only fitted objects (zo
 | lag_mean_2to4w           | True              | True             | float64        | trips (history)   | Mean of lag_14d, lag_21d, lag_28d                                                               | row mean ignoring NaN                                  | yes                      |
 | profile_zone_dow_hour    | True              | True             | float64        | trips (train fit) | Mean trips for zone x weekday x hour over the training period                                   | groupby mean on training rows only                     | yes                      |
 | zone_level_2to4w         | True              | True             | float64        | trips (history)   | Zone mean trips per hour over the 14 days that end 14 days before the row's day                 | daily means, shift 14 d, rolling 14 d                  | yes                      |
+| is_holiday_eve           | True              | True             | float64        | events            | 1 on the day before a confirmed public holiday                                                  | holiday dates - 1 day (D8)                             | yes                      |
 | row_id                   | False             | True             | str            | test              | Test row identifier (join key for scoring)                                                      | copied from raw                                        | yes                      |
