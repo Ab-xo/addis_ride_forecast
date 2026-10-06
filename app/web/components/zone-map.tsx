@@ -6,25 +6,25 @@ import type { StyleSpecification } from "maplibre-gl";
 import type { CityZone, Zone } from "@/lib/api";
 import { fmt } from "@/lib/api";
 
-// Dark raster basemap (CARTO). If the tiles can't load (offline demo), the dark background and the zone
-// markers still render, so the map never breaks the app.
+// CARTO Dark Matter basemap authenticated with API key.
+// Falls back gracefully to a dark background if tiles can't load.
+const CARTO_KEY = "cb1_4bvk_1_d47498fcf315e33364d583df";
+const TILE_URL = (sub: string) =>
+  `https://${sub}.basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}@2x.png?key=${CARTO_KEY}`;
+
 const STYLE: StyleSpecification = {
   version: 8,
   sources: {
     carto: {
       type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png",
-      ],
+      tiles: [TILE_URL("a"), TILE_URL("b"), TILE_URL("c")],
       tileSize: 256,
-      attribution: "© OpenStreetMap contributors © CARTO",
+      attribution: "© <a href='https://www.openstreetmap.org/copyright'>OpenStreetMap</a> contributors, © <a href='https://carto.com/attribution/'>CARTO</a>",
     },
   },
   layers: [
     { id: "bg", type: "background", paint: { "background-color": "#0b111e" } },
-    { id: "carto", type: "raster", source: "carto", paint: { "raster-opacity": 0.95 } },
+    { id: "carto", type: "raster", source: "carto", paint: { "raster-opacity": 0.97 } },
   ],
 };
 
