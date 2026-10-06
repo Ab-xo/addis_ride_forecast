@@ -21,12 +21,12 @@ Six model families on the same split. The machine-learning models all get the sa
 
 | model                                                                             |   rmse |   mae |   rolling_rmse_mean |   fit_seconds |   rmse_vs_seasonal_naive_pct |
 |:----------------------------------------------------------------------------------|-------:|------:|--------------------:|--------------:|-----------------------------:|
-| LightGBM (Poisson objective)                                                      |   8.07 |  5.58 |                8.77 |          4.32 |                       -18.84 |
-| HistGradientBoosting (log target)                                                 |   8.20 |  5.65 |                8.99 |          2.14 |                       -17.53 |
-| Gradient boosting, scikit-learn classic (log target)                              |   8.63 |  5.92 |                9.16 |         92.23 |                       -13.20 |
-| Random forest (log target)                                                        |   8.79 |  5.97 |                9.60 |         27.81 |                       -11.63 |
-| ARIMA(2,0,1) on daily/weekly Fourier seasonality, one per zone (time series only) |  10.41 |  6.86 |               11.52 |          4.61 |                         4.72 |
-| Ridge (linear, log target, one-hot zone/hour/weekday)                             |  12.99 |  7.80 |               13.95 |          0.54 |                        30.61 |
+| LightGBM (Poisson objective)                                                      |   8.07 |  5.58 |                8.77 |          3.92 |                       -18.84 |
+| HistGradientBoosting (log target)                                                 |   8.20 |  5.65 |                8.99 |          1.88 |                       -17.53 |
+| Gradient boosting, scikit-learn classic (log target)                              |   8.63 |  5.92 |                9.16 |         86.67 |                       -13.20 |
+| Random forest (log target)                                                        |   8.79 |  5.97 |                9.60 |         26.60 |                       -11.63 |
+| ARIMA(2,0,1) on daily/weekly Fourier seasonality, one per zone (time series only) |  10.41 |  6.86 |               11.52 |          5.29 |                         4.72 |
+| Ridge (linear, log target, one-hot zone/hour/weekday)                             |  12.99 |  7.80 |               13.95 |          0.49 |                        30.61 |
 
 **Winner: LightGBM (Poisson objective)** (RMSE 8.07, 19% better than the 4-week seasonal naive). The three gradient-boosting models (LightGBM 8.07, HistGradientBoosting 8.20, classic gradient boosting 8.63) lead, ahead of the random forest and the linear model: demand is driven by interactions (zone x hour x weekday, rain x zone type, event phase x zone) that trees find automatically and a linear model cannot. **ARIMA** (10.41; rolling 11.52 vs seasonal naive 11.48) does no better than the seasonal naive: over a 14-day horizon its short-memory ARIMA part fades to the smooth seasonal curve within hours, and it cannot see rain, events or holidays — the features that explain the departures from the usual weekly shape. We pick LightGBM because it is the most accurate, trains in seconds, handles missing lags natively and its Poisson objective matches count data.
 

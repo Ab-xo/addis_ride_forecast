@@ -100,13 +100,13 @@ Two independent pieces of evidence. (1) **Temperature:** on the raw clock the av
 
 |   hours added to raw weather clock |   misalignment vs. correct (h) |   corr(rain_mm, demand ratio) |   demand ratio, rainy hours |   demand ratio, dry hours |   rain uplift % |
 |-----------------------------------:|-------------------------------:|------------------------------:|----------------------------:|--------------------------:|----------------:|
-|                              0.000 |                         -3.000 |                         0.019 |                       1.039 |                     0.997 |           4.196 |
-|                              1.000 |                         -2.000 |                         0.030 |                       1.044 |                     0.997 |           4.706 |
-|                              2.000 |                         -1.000 |                         0.035 |                       1.050 |                     0.996 |           5.384 |
-|                              3.000 |                          0.000 |                         0.271 |                       1.181 |                     0.979 |          20.557 |
-|                              4.000 |                          1.000 |                         0.036 |                       1.050 |                     0.996 |           5.379 |
-|                              5.000 |                          2.000 |                         0.040 |                       1.046 |                     0.997 |           4.860 |
-|                              6.000 |                          3.000 |                         0.029 |                       1.044 |                     0.998 |           4.619 |
+|                                  0 |                             -3 |                         0.019 |                       1.039 |                     0.997 |           4.196 |
+|                                  1 |                             -2 |                         0.030 |                       1.044 |                     0.997 |           4.706 |
+|                                  2 |                             -1 |                         0.035 |                       1.050 |                     0.996 |           5.384 |
+|                                  3 |                              0 |                         0.271 |                       1.181 |                     0.979 |          20.557 |
+|                                  4 |                              1 |                         0.036 |                       1.050 |                     0.996 |           5.379 |
+|                                  5 |                              2 |                         0.040 |                       1.046 |                     0.997 |           4.860 |
+|                                  6 |                              3 |                         0.029 |                       1.044 |                     0.998 |           4.619 |
 
 The rain signal is strongest at +3 h (UTC -> EAT): correlation 0.271 and rainy hours 21% above dry ones. Joining on the raw clock (0 h, i.e. trusting the timestamps as local) cuts the correlation to 0.019 and the uplift to 4%: a 3-hour clock error would hide most of the weather signal.
 

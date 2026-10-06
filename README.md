@@ -12,7 +12,7 @@ history, hourly weather and a city events calendar.
 | **Rolling-origin RMSE** | **8.68 ± 0.80** over 5 folds of 14 days |
 | **Best baseline** | 9.94 RMSE (seasonal naive, last 4 weeks) — the final model is 19% better |
 | **Final model** | LightGBM, Poisson objective, 36 forecast-time features |
-| **Demo** | Runs locally: `streamlit run app/app.py` (see [Demo](#demo)) |
+| **Demo** | Runs locally: `python app/app.py`, then open <http://localhost:8000> (see [Demo](#demo)) |
 
 ---
 
@@ -142,30 +142,53 @@ the repository root, and `random_state` is fixed at 42 throughout.
 
 ## Demo
 
-The demo runs locally with one command:
+The demo runs locally with one command from the repository root:
 
 ```bash
-streamlit run app/app.py
+python app/app.py
 ```
 
-It then opens at <http://localhost:8501>. There is no hosted URL; the demo is run live from a laptop, as
-the instructions allow.
+Then open <http://localhost:8000>. There is no hosted URL; the demo is run live from a laptop, as the
+instructions allow.
 
-**Inputs.** A zone and a date between 1 and 14 November 2025 — nothing else.
+**How it is built.** `app/app.py` is a small FastAPI service. At start-up it loads the saved model and the
+bundled tables in `app/assets/`, scores the 4,032 forecast zone-hours, and serves a JSON API
+(`/api/meta`, `/api/city?date=`, `/api/forecast?zone=&date=`) together with the web interface. The
+interface is a Next.js + React app (Tailwind CSS, MapLibre map, Recharts charts) whose compiled static
+build is committed in `app/web/out/`, so **running the demo needs Python only, not Node.js**.
+
+**Inputs.** A zone and a date between 1 and 14 November 2025 — nothing else. Zones can be picked from the
+list, from the city map or from the zone leaderboard.
 
 **What the app does.** It looks up the weather forecast and any events for that zone and day from the
 cleaned tables in `app/assets/`, so the user never types in weather or event information. It then shows:
 
-- the 24-hour forecast as a table and as a curve, with the 80% range shaded;
-- the zone's usual day for comparison, with event windows shaded;
+- a live map of Addis Ababa with all 12 zones as bubbles sized by demand, and an hour slider that can
+  play the day forward;
+- the 24-hour forecast as a curve, with the 80% range shaded, the zone's usual day for comparison and
+  event windows shaded, plus the full hourly table (downloadable as CSV);
 - the peak hour;
-- the drivers needed each hour (forecast trips ÷ 1.3 trips per driver-hour);
+- the drivers needed each hour (forecast trips ÷ 1.3 trips per driver-hour), with a safe staffing level
+  at the top of the 80% range and a summary by shift;
 - the expected gross fares (forecast trips × the zone's average fare from the history);
-- a summary line of what was looked up, for example *"9–24 °C; no rain forecast; Road race at Meskel
-  Square 06:00–11:00; Football match at Addis Ababa Stadium 15:00–17:00"*.
+- a summary of what was looked up, for example *"9–24 °C · No rain forecast · Road race at Meskel
+  Square 06:00–11:00 · Football match at Addis Ababa Stadium 15:00–17:00"*;
+- a ranking of all 12 zones for the day, compared with their usual day of the week.
 
 Dates outside 1–14 November get a friendly message instead of an error. A link such as
-`http://localhost:8501/?zone=Kazanchis&date=2025-11-09` opens the app on that zone and day.
+`http://localhost:8000/?zone=Kazanchis&date=2025-11-09` opens the app on that zone and day.
+
+**Changing the interface (optional).** With Node.js 20+ installed:
+
+```bash
+cd app/web
+npm install
+npm run dev      # live-reloading interface at http://localhost:3000 (keep python app/app.py running)
+npm run build    # rebuilds app/web/out, which app/app.py serves
+```
+
+**Streamlit version.** A simpler Streamlit version of the same demo is kept as a fallback:
+`streamlit run app/streamlit_app.py`.
 
 ---
 
@@ -209,9 +232,11 @@ hackathon/
 │   ├── D_model_evaluation.md           (+ D_permutation_importance.csv)
 │   └── D_stretch_uncertainty.md
 ├── app/
-│   ├── app.py
+│   ├── app.py                          FastAPI service: forecast API + serves the web interface
+│   ├── streamlit_app.py                Streamlit fallback version of the demo
 │   ├── requirements.txt
-│   └── assets/                         cleaned weather, events, zone fares, typical profiles, model
+│   ├── assets/                         cleaned weather, events, zone fares, typical profiles, model
+│   └── web/                            Next.js interface (source in app/, components/, lib/; build in out/)
 └── presentation/
     └── team_teamdev_slides.pptx
 ```
@@ -227,7 +252,7 @@ hackathon/
 | **B — Data analysis** | B1.1–B4.3: all 14 tasks, each with a result and an interpretation | [`reports/B_analysis_report.md`](reports/B_analysis_report.md), [`notebooks/02_…`](notebooks/02_analysis_report.ipynb) |
 | **C — Visualisation pack** | 12 figures (150 dpi, colourblind-safe palette) with captions | [`figures/`](figures), [`figures/figure_captions.md`](figures/figure_captions.md), [`notebooks/03_…`](notebooks/03_visualizations.ipynb) |
 | **D — Modelling & evaluation** | D1–D9: baselines, comparison of six model families, rolling-origin validation, leakage audit, ablation, tuning, error analysis, response to findings, plain-language metric | [`reports/D_model_evaluation.md`](reports/D_model_evaluation.md), [`notebooks/04_…`](notebooks/04_modeling_and_evaluation.ipynb), [`models/`](models) |
-| **E — Demo** | Streamlit app with bundled lookup tables | [`app/`](app) |
+| **E — Demo** | FastAPI + Next.js app with a live zone map and bundled lookup tables (Streamlit fallback included) | [`app/`](app) |
 | **F — Presentation** | 5 slides, using 4 figures from the pack | [`presentation/team_teamdev_slides.pptx`](presentation/team_teamdev_slides.pptx) |
 | **G — Structure & reproducibility** | This README, pinned requirements, the layout above | repository root |
 | **Stretch — Uncertainty** | 80% and 90% interval per zone-hour, with guidance for operations | [`reports/D_stretch_uncertainty.md`](reports/D_stretch_uncertainty.md), [`submission/team_teamdev_prediction_intervals.csv`](submission/team_teamdev_prediction_intervals.csv) |

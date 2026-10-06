@@ -3,5 +3,16 @@ numpy==2.5.3
 scikit-learn==1.9.1
 lightgbm==4.7.0
 joblib==1.6.0
+fastapi==0.142.2
+starlette==1.7.0
+uvicorn==0.54.0
+pydantic==2.13.5
+pydantic_core==2.46.5
+annotated-types==0.8.0
+annotated-doc==0.0.5
+typing-inspection==0.4.4
+anyio==4.15.1
+h11==0.16.0
+click==8.5.0
 streamlit==1.65.0
 altair==6.3.0
