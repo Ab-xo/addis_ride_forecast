@@ -1,0 +1,50 @@
+column,in_master_train,in_master_test,dtype,source,description,derivation,known_at_forecast_time
+zone,True,True,str,trips/test,One of 12 canonical pickup zones,alias table over 55 raw spellings,yes
+pickup_hour,True,True,datetime64[us],trips/test,"Start of the hour, Addis Ababa local time (EAT, naive)",3 explicit formats parsed; ISO +03:00 converted to EAT,yes
+row_status,True,False,str,trips,observed / missing_value / random_gap / outage / prelaunch,"full 12 x 7,296-hour grid vs cleaned records",n/a
+trips,True,False,float64,trips,TARGET: trips requested in the zone-hour,-1 -> NaN; x8 spikes / 8; duplicates averaged,no (target)
+avg_fare_birr,True,False,float64,trips,Average fare (birr) - analysis/demo only,duplicates averaged,no
+avg_wait_min,True,False,float64,trips,Average wait (min) - analysis only,-1 -> NaN; duplicates averaged,no
+active_drivers,True,False,float64,trips,Active drivers - analysis only,duplicates averaged,no
+trips_spike_fixed,True,False,object,trips,1 if the raw count was an x8 export spike and was divided by 8,trips/active_drivers >= 4,n/a
+zone_type,True,True,str,derived (train),Zone group from weekday profile shape and weekend ratio,rules in features.fit_zone_types on train rows,yes
+weather_data_type,True,True,str,weather,observed (history) or forecast (1-14 Nov),copied,yes
+weather_imputed,True,True,bool,weather,1 if the weather hour was missing/blank and interpolated,reindex + time interpolation,yes
+ev_ids,True,True,str,events,Confirmed event ids whose window covers the zone-hour,interval join,yes
+ev_cancelled_window,True,True,float64,events,"1 if a cancelled event's window covers the zone-hour (analysis only, B3.4)",interval join on cancelled events,yes
+hour,True,True,int32,calendar,Hour of day 0-23,pickup_hour.hour,yes
+dow,True,True,int32,calendar,"Day of week, 0 = Monday",pickup_hour.dayofweek,yes
+is_weekend,True,True,int64,calendar,1 on Saturday/Sunday,dow >= 5,yes
+month,True,True,int32,calendar,Month 1-12,pickup_hour.month,yes
+day_of_month,True,True,int32,calendar,Day of month,pickup_hour.day,yes
+is_payday_window,True,True,int64,calendar,1 in the last 5 days or first 2 days of a month,day > days_in_month - 5 or day <= 2,yes
+is_public_holiday,True,True,float64,events,1 if a confirmed public holiday covers the hour,"interval join, public_holiday rows",yes
+is_school_break,True,True,float64,events,1 inside a confirmed school break,"interval join, school_break rows",yes
+trend_days,True,True,float64,calendar,Days since 1 Jan 2025,(pickup_hour - 2025-01-01) / 1 day,yes
+zone_code,True,True,int64,zone,Integer code of the zone,index in config.ZONES,yes
+zone_type_code,True,True,int64,zone,Integer code of zone_type,index in ZONE_TYPE_ORDER,yes
+temp_c,True,True,float64,weather,"Air temperature, degC (degF block converted)",joined on EAT hour,yes (forecast)
+rain_mm,True,True,float64,weather,"Rain in the previous hour, mm",joined on EAT hour; -9999 -> NaN -> interpolated,yes (forecast)
+rain_3h,True,True,float64,weather,"Rain over the current and previous 2 hours, mm",rolling 3-hour sum of rain_mm,yes (forecast)
+rain_class,True,True,int64,weather,"0 none, 1 light (<=2.5), 2 moderate (<=7.5), 3 heavy",bins of rain_mm,yes (forecast)
+humidity_pct,True,True,float64,weather,"Relative humidity, %",joined; blanks interpolated,yes (forecast)
+wind_kmh,True,True,float64,weather,"Wind speed, km/h",joined,yes (forecast)
+ev_football_window,True,True,float64,events,1 if a confirmed football match window (2 h before start to 2 h after end) covers the zone-hour,interval join,yes
+ev_concert_window,True,True,float64,events,1 inside a confirmed concert window,interval join,yes
+ev_conference_window,True,True,float64,events,1 inside a confirmed conference window,interval join,yes
+ev_exhibition_window,True,True,float64,events,1 inside a confirmed exhibition window,interval join,yes
+ev_road_closure,True,True,float64,events,1 during a confirmed road closure,interval join,yes
+ev_sports_run_window,True,True,float64,events,1 inside a confirmed sports run window,interval join,yes
+ev_pre,True,True,float64,events,1 in the 2 h before a venue event starts,phase of window,yes
+ev_during,True,True,float64,events,1 while a venue event runs,phase of window,yes
+ev_post,True,True,float64,events,1 in the 2 h after a venue event ends,phase of window,yes
+ev_log_attendance,True,True,float64,events,log(1 + expected attendance) of the largest active venue event,free text -> number; blanks -> type median,yes
+ev_hours_to_major_start,True,True,float64,events,"Hours until the next football/concert start in the zone, capped at 12",searchsorted on event starts,yes
+ev_hours_since_major_end,True,True,float64,events,"Hours since the last football/concert ended in the zone, capped at 12",searchsorted on event ends,yes
+lag_14d,True,True,float64,trips (history),Trips in the same zone and hour 14 days earlier,shift by 336 h on the zone panel,yes
+lag_21d,True,True,float64,trips (history),"Same, 21 days earlier",shift by 504 h,yes
+lag_28d,True,True,float64,trips (history),"Same, 28 days earlier",shift by 672 h,yes
+lag_mean_2to4w,True,True,float64,trips (history),"Mean of lag_14d, lag_21d, lag_28d",row mean ignoring NaN,yes
+profile_zone_dow_hour,True,True,float64,trips (train fit),Mean trips for zone x weekday x hour over the training period,groupby mean on training rows only,yes
+zone_level_2to4w,True,True,float64,trips (history),Zone mean trips per hour over the 14 days that end 14 days before the row's day,"daily means, shift 14 d, rolling 14 d",yes
+row_id,False,True,str,test,Test row identifier (join key for scoring),copied from raw,yes
