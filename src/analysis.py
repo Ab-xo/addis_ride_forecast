@@ -7,6 +7,11 @@ import pandas as pd
 from src import config
 
 
+# Event flags that mark a zone-hour as "not ordinary" (school breaks are a season, not an event).
+EVENT_WINDOW_COLS = ["ev_football_window", "ev_concert_window", "ev_conference_window",
+                     "ev_exhibition_window", "ev_road_closure", "ev_sports_run_window"]
+
+
 def load_master() -> pd.DataFrame:
     m = pd.read_csv(config.PROCESSED / "master_train.csv", parse_dates=["pickup_hour"])
     m["ev_ids"] = m["ev_ids"].fillna("")
@@ -33,7 +38,7 @@ def expected_demand(m: pd.DataFrame, exclude_rain: bool = True) -> pd.DataFrame:
     """
     o = m[m["row_status"] == "observed"].copy()
     o["week"] = o["pickup_hour"].dt.to_period("W-SUN").dt.start_time
-    ordinary = (o["ev_ids"] == "") & (o["is_public_holiday"] == 0)
+    ordinary = (o[EVENT_WINDOW_COLS].sum(axis=1) == 0) & (o["is_public_holiday"] == 0)
     if exclude_rain:
         ordinary &= o["rain_3h"] == 0
     o["ordinary"] = ordinary

@@ -33,7 +33,7 @@ def apply():
         "axes.edgecolor": INK_2, "axes.labelcolor": INK, "text.color": INK,
         "xtick.color": INK_2, "ytick.color": INK_2,
         "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.8,
-        "axes.spines.top": False, "axes.spines.right": False,
+        "axes.spines.top": False, "axes.spines.right": False, "axes.axisbelow": True,
         "axes.prop_cycle": mpl.cycler(color=SERIES), "lines.linewidth": 2,
     })
 
